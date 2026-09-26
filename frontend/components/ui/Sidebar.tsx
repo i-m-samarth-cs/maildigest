@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Mail, User, Settings } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Mail, User, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const NAV = [
   { href: "/digest",            label: "Digest",   Icon: Mail },
@@ -11,6 +12,14 @@ const NAV = [
 
 export function Sidebar() {
   const path = usePathname();
+  const router = useRouter();
+  const { signOut, session } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/login");
+  }
+
   return (
     <aside className="w-52 shrink-0 bg-white border-r border-gray-200 flex flex-col">
       <div className="px-5 py-5 border-b border-gray-200">
@@ -32,8 +41,20 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-5 py-3 border-t border-gray-200 text-xs text-gray-400">
-        {new Date().toLocaleDateString("en-IN", { dateStyle: "medium" })}
+      <div className="px-3 py-3 border-t border-gray-200 space-y-2">
+        {session?.user?.email && (
+          <p className="px-3 text-xs text-gray-400 truncate">{session.user.email}</p>
+        )}
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={16} />
+          Sign out
+        </button>
+        <p className="px-3 text-xs text-gray-400">
+          {new Date().toLocaleDateString("en-IN", { dateStyle: "medium" })}
+        </p>
       </div>
     </aside>
   );
