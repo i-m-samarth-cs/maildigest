@@ -7,10 +7,10 @@ PATCH  /accounts/{id}      — toggle enabled
 """
 from fastapi import APIRouter, Depends, HTTPException
 
-from .deps import get_current_user
-from ..services.db import get_supabase, get_accounts_for_user
-from ..services.sync_service import sync_account
-from ..services.encryption import decrypt_token
+from api.deps import get_current_user
+from services.db import get_supabase, get_accounts_for_user
+from services.sync_service import sync_account
+from services.encryption import decrypt_token
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 

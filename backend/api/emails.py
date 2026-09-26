@@ -11,8 +11,8 @@ from typing import Optional
 import bleach
 from fastapi import APIRouter, Depends, Query, HTTPException
 
-from .deps import get_current_user
-from ..services.db import get_supabase, get_emails_for_date, get_email_by_id
+from api.deps import get_current_user
+from services.db import get_supabase, get_emails_for_date, get_email_by_id
 
 router = APIRouter(prefix="/emails", tags=["emails"])
 

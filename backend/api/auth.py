@@ -11,13 +11,13 @@ import jwt
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import RedirectResponse
 
-from ..services.oauth_service import (
+from services.oauth_service import (
     gmail_auth_url, gmail_exchange_code,
     outlook_auth_url, outlook_exchange_code,
     save_oauth_account,
 )
-from ..services.db import get_supabase
-from .deps import get_current_user
+from services.db import get_supabase
+from api.deps import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
-from .deps import get_current_user
-from ..services.db import get_supabase, get_user_settings, upsert_user_settings
+from api.deps import get_current_user
+from services.db import get_supabase, get_user_settings, upsert_user_settings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
