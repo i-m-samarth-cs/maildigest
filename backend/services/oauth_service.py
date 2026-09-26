@@ -8,7 +8,7 @@ from typing import Dict, Any
 from urllib.parse import urlencode
 
 from supabase import Client
-from .encryption import encrypt_token
+from services.encryption import encrypt_token
 
 
 # ── Gmail OAuth ───────────────────────────────────────────────────────────────

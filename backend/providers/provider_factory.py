@@ -1,7 +1,7 @@
 from typing import Dict, Any
-from .base import EmailProvider
-from .gmail_provider import GmailProvider
-from .outlook_provider import OutlookProvider
+from providers.base import EmailProvider
+from providers.gmail_provider import GmailProvider
+from providers.outlook_provider import OutlookProvider
 
 PROVIDER_MAP = {
     "gmail": GmailProvider,

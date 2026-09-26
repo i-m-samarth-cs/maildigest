@@ -11,16 +11,16 @@ from datetime import datetime, timezone, timedelta
 
 from supabase import Client
 
-from .db import (
+from services.db import (
     get_accounts_for_user,
     upsert_email,
     upsert_attachments,
     update_account_sync_status,
     get_user_settings,
 )
-from .encryption import decrypt_token
-from .ai_service import analyze_email_background
-from ..providers.provider_factory import get_provider
+from services.encryption import decrypt_token
+from services.ai_service import analyze_email_background
+from providers.provider_factory import get_provider
 
 logger = logging.getLogger(__name__)
 

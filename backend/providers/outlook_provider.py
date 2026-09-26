@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from .base import EmailProvider
+from providers.base import EmailProvider
 
 
 class OutlookProvider(EmailProvider):

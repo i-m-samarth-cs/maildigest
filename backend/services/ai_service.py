@@ -17,7 +17,7 @@ import os
 from typing import Dict, Any, List, Optional
 
 from supabase import Client
-from .db import upsert_ai_analysis
+from services.db import upsert_ai_analysis
 
 logger = logging.getLogger(__name__)
 
