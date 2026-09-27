@@ -1,127 +1,173 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw, ExternalLink, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { emailApi, DigestResponse, EmailSummary } from "@/lib/api";
+import { ArrowLeft, RefreshCw, ExternalLink, AlertCircle, ChevronDown, ChevronUp, Star } from "lucide-react";
+import { emailApi, accountApi, DigestResponse, EmailSummary } from "@/lib/api";
 import { CATEGORY_COLORS, CATEGORY_LABELS, formatEmailDate, formatFullDate } from "@/lib/utils";
 
-const CATEGORY_BG: Record<string, string> = {
-  jobs:         "bg-blue-50 border-blue-200",
-  competitions: "bg-purple-50 border-purple-200",
-  tech:         "bg-green-50 border-green-200",
-  reddit:       "bg-orange-50 border-orange-200",
-  newsletters:  "bg-yellow-50 border-yellow-200",
-  college:      "bg-teal-50 border-teal-200",
-  personal:     "bg-pink-50 border-pink-200",
-  other:        "bg-gray-50 border-gray-200",
+/* ── helpers ──────────────────────────────────────────────── */
+function decodeHtml(str: string): string {
+  if (typeof document === "undefined") return str;
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+}
+
+const CAT_PILL: Record<string, string> = {
+  jobs:         "bg-blue-100 text-blue-800",
+  competitions: "bg-purple-100 text-purple-800",
+  tech:         "bg-emerald-100 text-emerald-800",
+  reddit:       "bg-orange-100 text-orange-800",
+  newsletters:  "bg-yellow-100 text-yellow-800",
+  college:      "bg-teal-100 text-teal-800",
+  personal:     "bg-pink-100 text-pink-800",
+  other:        "bg-gray-100 text-gray-600",
 };
 
-const CATEGORY_ACCENT: Record<string, string> = {
-  jobs:         "border-blue-500 text-blue-700 bg-blue-50",
-  competitions: "border-purple-500 text-purple-700 bg-purple-50",
-  tech:         "border-green-500 text-green-700 bg-green-50",
-  reddit:       "border-orange-500 text-orange-700 bg-orange-50",
-  newsletters:  "border-yellow-500 text-yellow-700 bg-yellow-50",
-  college:      "border-teal-500 text-teal-700 bg-teal-50",
-  personal:     "border-pink-500 text-pink-700 bg-pink-50",
-  other:        "border-gray-400 text-gray-700 bg-gray-50",
+const CAT_LEFT: Record<string, string> = {
+  jobs:         "border-blue-400",
+  competitions: "border-purple-400",
+  tech:         "border-emerald-400",
+  reddit:       "border-orange-400",
+  newsletters:  "border-yellow-400",
+  college:      "border-teal-400",
+  personal:     "border-pink-400",
+  other:        "border-gray-300",
 };
 
+const TAB_ACTIVE: Record<string, string> = {
+  jobs:         "bg-blue-500 text-white border-blue-500",
+  competitions: "bg-purple-500 text-white border-purple-500",
+  tech:         "bg-emerald-500 text-white border-emerald-500",
+  reddit:       "bg-orange-500 text-white border-orange-500",
+  newsletters:  "bg-yellow-500 text-white border-yellow-500",
+  college:      "bg-teal-500 text-white border-teal-500",
+  personal:     "bg-pink-500 text-white border-pink-500",
+  other:        "bg-gray-600 text-white border-gray-600",
+  all:          "bg-gray-900 text-white border-gray-900",
+};
+
+/* ── EmailCard ─────────────────────────────────────────────── */
 function EmailCard({ email }: { email: EmailSummary }) {
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const cat = email.ai_analysis?.category ?? "other";
-  const priority = email.ai_analysis?.priority;
+  const ai  = email.ai_analysis;
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-shadow hover:shadow-md ${CATEGORY_BG[cat] ?? CATEGORY_BG.other}`}>
-      {/* Card header */}
-      <div
-        className="flex items-start gap-3 p-4 cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
+    <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden border-l-4 ${CAT_LEFT[cat] ?? CAT_LEFT.other}`}>
+
+      {/* ── header (always visible) ─────────────────────────── */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-left px-5 py-4 flex items-start gap-4 hover:bg-gray-50 transition-colors"
       >
-        {/* Unread dot */}
-        <div className="mt-1.5 shrink-0">
+        {/* unread indicator */}
+        <span className="mt-2 shrink-0">
           {!email.is_read
-            ? <div className="w-2 h-2 rounded-full bg-brand-500" />
-            : <div className="w-2 h-2 rounded-full bg-transparent" />}
-        </div>
+            ? <span className="block w-2 h-2 rounded-full bg-blue-500" />
+            : <span className="block w-2 h-2 rounded-full bg-gray-200" />}
+        </span>
 
         <div className="flex-1 min-w-0">
-          {/* Sender + date */}
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-semibold text-sm text-gray-900 truncate">{email.sender_name || email.sender_email}</span>
-            <span className="text-xs text-gray-400 shrink-0">{formatEmailDate(email.received_at)}</span>
+          {/* sender + time */}
+          <div className="flex items-center justify-between gap-4 mb-0.5">
+            <span className="font-semibold text-gray-900 truncate">
+              {decodeHtml(email.sender_name || email.sender_email)}
+            </span>
+            <span className="text-xs text-gray-400 shrink-0 tabular-nums">
+              {formatEmailDate(email.received_at)}
+            </span>
           </div>
 
-          {/* Subject */}
-          <p className="text-sm font-medium text-gray-800 truncate mb-1">{email.subject ?? "(no subject)"}</p>
+          {/* subject */}
+          <p className="text-sm text-gray-700 font-medium truncate mb-2">
+            {decodeHtml(email.subject ?? "(no subject)")}
+          </p>
 
-          {/* Badges row */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.other}`}>
+          {/* badges */}
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${CAT_PILL[cat] ?? CAT_PILL.other}`}>
               {CATEGORY_LABELS[cat] ?? cat}
             </span>
-            {priority === "high" && (
-              <span className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium bg-red-100 text-red-700">
+            {ai?.priority === "high" && (
+              <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700 flex items-center gap-1">
                 <AlertCircle size={9} /> High priority
               </span>
             )}
-            {email.ai_analysis?.action_required && (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-700">
+            {ai?.action_required && (
+              <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-amber-100 text-amber-700">
                 Action needed
               </span>
             )}
+            {email.is_starred && (
+              <Star size={12} className="text-yellow-400 fill-yellow-400" />
+            )}
           </div>
 
-          {/* AI summary (always visible if present) */}
-          {email.ai_analysis?.summary && !expanded && (
-            <p className="mt-2 text-xs text-gray-500 line-clamp-2">{email.ai_analysis.summary}</p>
+          {/* ai summary preview (collapsed) */}
+          {!open && ai?.summary && (
+            <p className="mt-2 text-xs text-gray-400 line-clamp-1 italic">
+              {ai.summary}
+            </p>
           )}
         </div>
 
-        <button className="shrink-0 text-gray-400 hover:text-gray-600 mt-0.5">
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-      </div>
+        <span className="shrink-0 text-gray-300 mt-1">
+          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </span>
+      </button>
 
-      {/* Expanded body */}
-      {expanded && (
-        <div className="border-t border-current border-opacity-10 px-4 pb-4 pt-3 space-y-3">
-          {/* Full meta */}
-          <div className="text-xs text-gray-500 space-y-0.5">
-            <div><span className="font-medium text-gray-700">From:</span> {email.sender_name ? `${email.sender_name} <${email.sender_email}>` : email.sender_email}</div>
-            <div><span className="font-medium text-gray-700">Date:</span> {formatFullDate(email.received_at)}</div>
+      {/* ── expanded body ───────────────────────────────────── */}
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-gray-100 space-y-4">
+
+          {/* meta */}
+          <div className="text-xs text-gray-500 space-y-0.5 pt-1">
+            <div>
+              <span className="font-medium text-gray-700">From: </span>
+              {email.sender_name
+                ? `${decodeHtml(email.sender_name)} <${email.sender_email}>`
+                : email.sender_email}
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Date: </span>
+              {formatFullDate(email.received_at)}
+            </div>
           </div>
 
-          {/* AI summary */}
-          {email.ai_analysis?.summary && (
-            <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-current border-opacity-10">
-              <p className="text-xs font-semibold text-brand-600 mb-1">✦ AI Summary</p>
-              <p className="text-sm text-gray-700 leading-relaxed">{email.ai_analysis.summary}</p>
-              {email.ai_analysis.keywords?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {email.ai_analysis.keywords.map((k) => (
-                    <span key={k} className="text-[10px] bg-white border rounded-full px-2 py-0.5 text-gray-500">{k}</span>
+          {/* AI summary box */}
+          {ai?.summary && (
+            <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4">
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1.5">✦ AI Summary</p>
+              <p className="text-sm text-gray-800 leading-relaxed">{ai.summary}</p>
+              {ai.keywords?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {ai.keywords.map((k) => (
+                    <span key={k} className="text-[11px] bg-white border border-blue-200 text-blue-600 rounded-full px-2 py-0.5">
+                      {k}
+                    </span>
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* Snippet */}
+          {/* snippet */}
           {email.snippet && (
-            <p className="text-sm text-gray-600 leading-relaxed">{email.snippet}</p>
+            <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl px-4 py-3">
+              {decodeHtml(email.snippet)}
+            </p>
           )}
 
-          {/* Open original */}
+          {/* open in gmail */}
           {email.provider_url && (
             <a
               href={email.provider_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={13} />
               Open in {email.account?.provider === "gmail" ? "Gmail" : "Outlook"}
             </a>
           )}
@@ -131,138 +177,130 @@ function EmailCard({ email }: { email: EmailSummary }) {
   );
 }
 
+/* ── Page ──────────────────────────────────────────────────── */
 export default function DigestViewPage() {
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
+  const today  = new Date().toISOString().slice(0, 10);
 
-  const [digest, setDigest] = useState<DigestResponse | null>(null);
+  const [digest,  setDigest]  = useState<DigestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [tab,     setTab]     = useState("all");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await emailApi.getDigest({ date: today, page_size: "200" });
       setDigest(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, [today]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleSync() {
-    const { accountApi } = await import("@/lib/api");
     setSyncing(true);
     try {
       const accounts = await accountApi.list();
-      await Promise.allSettled(accounts.map((a) => accountApi.sync(a.id)));
+      await Promise.allSettled(accounts.map(a => accountApi.sync(a.id)));
       await load();
-    } finally {
-      setSyncing(false);
-    }
+    } finally { setSyncing(false); }
   }
 
-  const emails = digest?.emails ?? [];
-  const stats = digest?.stats ?? {};
+  const emails  = digest?.emails ?? [];
+  const stats   = digest?.stats  ?? {};
 
-  // Build category tabs from actual data
   const tabs = [
     { key: "all", label: "All", count: digest?.total ?? 0 },
     ...Object.entries(stats)
       .sort((a, b) => b[1] - a[1])
-      .map(([cat, count]) => ({ key: cat, label: CATEGORY_LABELS[cat] ?? cat, count })),
+      .map(([cat, count]) => ({
+        key: cat,
+        label: CATEGORY_LABELS[cat] ?? cat,
+        count,
+      })),
   ];
 
-  const visibleEmails = activeTab === "all"
+  const visible = tab === "all"
     ? emails
-    : emails.filter((e) => (e.ai_analysis?.category ?? "other") === activeTab);
+    : emails.filter(e => (e.ai_analysis?.category ?? "other") === tab);
 
-  const formattedDate = new Date(today + "T12:00:00").toLocaleDateString("en-IN", {
+  const dateLabel = new Date(today + "T12:00:00").toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Top navbar */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft size={15} />
-              Back
-            </button>
-            <div className="h-4 w-px bg-gray-200" />
-            <span className="text-base font-bold text-brand-500">MailDigest</span>
-          </div>
+    <div className="min-h-screen bg-gray-50">
 
-          <div className="text-center hidden sm:block">
-            <h1 className="text-sm font-semibold text-gray-900">{formattedDate}</h1>
-            <p className="text-xs text-gray-400">{digest?.total ?? 0} emails</p>
+      {/* ── sticky header ──────────────────────────────────── */}
+      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="w-full px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft size={15} /> Back
+          </button>
+
+          <div className="text-center flex-1">
+            <h1 className="text-sm font-bold text-gray-900 leading-tight">{dateLabel}</h1>
+            <p className="text-xs text-gray-400">{digest?.total ?? 0} emails synced</p>
           </div>
 
           <button
             onClick={handleSync}
             disabled={syncing || loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
           >
             <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
             {syncing ? "Syncing…" : "Sync"}
           </button>
         </div>
-      </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-        {/* Category tab bar */}
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-6 scrollbar-hide">
-          {tabs.map((tab) => (
+        {/* ── tab bar ──────────────────────────────────────── */}
+        <div className="w-full px-4 sm:px-8 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
+          {tabs.map(t => (
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                activeTab === tab.key
-                  ? tab.key === "all"
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : `border-2 ${CATEGORY_ACCENT[tab.key] ?? CATEGORY_ACCENT.other}`
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                tab === t.key
+                  ? TAB_ACTIVE[t.key] ?? TAB_ACTIVE.all
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
               }`}
             >
-              {tab.label}
-              <span className={`text-xs font-bold rounded-full px-1.5 py-0.5 ${
-                activeTab === tab.key ? "bg-white bg-opacity-30" : "bg-gray-100 text-gray-500"
+              {t.label}
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                tab === t.key ? "bg-white bg-opacity-25" : "bg-gray-100 text-gray-500"
               }`}>
-                {tab.count}
+                {t.count}
               </span>
             </button>
           ))}
         </div>
+      </header>
 
-        {/* Email grid */}
+      {/* ── content ────────────────────────────────────────── */}
+      <main className="w-full px-4 sm:px-8 py-6">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-3">
-            <RefreshCw size={24} className="animate-spin" />
+          <div className="flex flex-col items-center justify-center py-32 text-gray-400 gap-3">
+            <RefreshCw size={28} className="animate-spin" />
             <p className="text-sm">Loading your digest…</p>
           </div>
-        ) : visibleEmails.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-2">
-            <p className="text-lg">📭</p>
-            <p className="text-sm font-medium">No emails in this category</p>
-            <p className="text-xs">Try syncing or switch to a different tab</p>
+        ) : visible.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 text-gray-400 gap-2">
+            <p className="text-4xl">📭</p>
+            <p className="text-base font-semibold text-gray-500 mt-2">No emails here</p>
+            <p className="text-sm">Try a different tab or sync your accounts</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {visibleEmails.map((email) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {visible.map(email => (
               <EmailCard key={email.id} email={email} />
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

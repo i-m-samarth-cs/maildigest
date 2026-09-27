@@ -124,17 +124,19 @@ export function EmailPanel({ emailId, onClose }: Props) {
             title="Email body"
             sandbox="allow-same-origin"
             srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data: cid:;">
 <style>
-  /* Base reset */
-  body { margin: 16px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; word-break: break-word; }
+  html, body { margin: 0; padding: 0; width: 100%; box-sizing: border-box; }
+  body { padding: 20px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; word-break: break-word; overflow-x: hidden; }
   a { color: #2563eb; }
-  img { max-width: 100%; height: auto; }
+  img { max-width: 100% !important; height: auto !important; }
+  table { max-width: 100% !important; }
 </style>
 <style>${styles}</style>
 </head><body>${html}</body></html>`}
-            className="w-full h-full border-0"
-            style={{ minHeight: "500px" }}
+            className="w-full border-0"
+            style={{ minHeight: "500px", height: "100%", display: "block" }}
           />
         ) : (
           <pre className="p-5 text-sm font-sans whitespace-pre-wrap text-gray-700 leading-relaxed">
