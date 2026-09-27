@@ -118,7 +118,7 @@ export function EmailPanel({ emailId, onClose }: Props) {
       )}
 
       {/* Body — HTML is sandboxed, scripts fully blocked */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {mode === "html" && html ? (
           <iframe
             title="Email body"
@@ -127,19 +127,19 @@ export function EmailPanel({ emailId, onClose }: Props) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data: cid:;">
 <style>
-  html, body { margin: 0; padding: 0; width: 100%; box-sizing: border-box; }
-  body { padding: 20px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; word-break: break-word; overflow-x: hidden; }
+  html, body { margin: 0; padding: 0; width: 100% !important; max-width: 100% !important; box-sizing: border-box; }
+  body { padding: 16px 20px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; word-break: break-word; overflow-x: hidden; }
   a { color: #2563eb; }
-  img { max-width: 100% !important; height: auto !important; }
-  table { max-width: 100% !important; }
+  img { max-width: 100% !important; width: auto !important; height: auto !important; }
+  table { max-width: 100% !important; width: 100% !important; }
+  td, th { word-break: break-word; }
 </style>
 <style>${styles}</style>
 </head><body>${html}</body></html>`}
-            className="w-full border-0"
-            style={{ minHeight: "500px", height: "100%", display: "block" }}
+            style={{ flex: 1, width: "100%", border: "none", display: "block", minHeight: "400px" }}
           />
         ) : (
-          <pre className="p-5 text-sm font-sans whitespace-pre-wrap text-gray-700 leading-relaxed">
+          <pre className="flex-1 p-5 text-sm font-sans whitespace-pre-wrap text-gray-700 leading-relaxed overflow-auto">
             {email.body_text ?? email.snippet ?? "(no content)"}
           </pre>
         )}
