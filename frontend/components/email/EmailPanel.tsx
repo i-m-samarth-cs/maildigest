@@ -12,6 +12,7 @@ interface Props {
 export function EmailPanel({ emailId, onClose }: Props) {
   const [email, setEmail] = useState<EmailDetail | null>(null);
   const [html, setHtml] = useState<string | null>(null);
+  const [styles, setStyles] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"html" | "text">("html");
 
@@ -20,11 +21,13 @@ export function EmailPanel({ emailId, onClose }: Props) {
     setLoading(true);
     setEmail(null);
     setHtml(null);
+    setStyles("");
     Promise.all([emailApi.getEmail(emailId), emailApi.getEmailHtml(emailId)])
       .then(([e, h]) => {
         if (!alive) return;
         setEmail(e);
-        setHtml(h.html);
+        setHtml((h as any).html);
+        setStyles((h as any).styles ?? "");
       })
       .catch(console.error)
       .finally(() => alive && setLoading(false));
@@ -121,10 +124,17 @@ export function EmailPanel({ emailId, onClose }: Props) {
             title="Email body"
             sandbox="allow-same-origin"
             srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:;">
-<style>body{font:14px/1.6 system-ui,sans-serif;margin:16px;color:#111;word-break:break-word;}a{color:#2563eb;}</style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data: cid:;">
+<style>
+  /* Base reset */
+  body { margin: 16px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; word-break: break-word; }
+  a { color: #2563eb; }
+  img { max-width: 100%; height: auto; }
+</style>
+<style>${styles}</style>
 </head><body>${html}</body></html>`}
-            className="w-full h-full border-0 min-h-96"
+            className="w-full h-full border-0"
+            style={{ minHeight: "500px" }}
           />
         ) : (
           <pre className="p-5 text-sm font-sans whitespace-pre-wrap text-gray-700 leading-relaxed">

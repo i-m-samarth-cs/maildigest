@@ -21,27 +21,53 @@ ALLOWED_TAGS = list(bleach.sanitizer.ALLOWED_TAGS) + [
     "p", "br", "div", "span", "table", "thead", "tbody", "tr", "td", "th",
     "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li",
     "strong", "em", "b", "i", "u", "a", "img", "blockquote", "pre", "code",
-    "hr", "section", "article", "header", "footer", "main",
+    "hr", "section", "article", "header", "footer", "main", "center",
+    "font", "body", "html", "head",
 ]
 ALLOWED_ATTRS = {
     "a": ["href", "title", "target"],
     "img": ["src", "alt", "width", "height"],
-    "td": ["colspan", "rowspan", "align", "valign"],
+    "td": ["colspan", "rowspan", "align", "valign", "width", "height", "bgcolor"],
     "th": ["colspan", "rowspan", "align", "valign"],
+    "table": ["width", "cellpadding", "cellspacing", "border", "align", "bgcolor"],
+    "font": ["color", "size", "face"],
+    "div": ["align"],
     "*": ["style", "class"],
 }
-ALLOWED_PROTOCOLS = ["http", "https", "mailto"]
+ALLOWED_PROTOCOLS = ["http", "https", "mailto", "data"]
 
 
 def sanitize_html(html: str) -> str:
-    """Strip dangerous tags/attributes from email HTML before rendering."""
-    return bleach.clean(
-        html,
+    """
+    Sanitize email HTML for safe rendering.
+    Extracts <style> blocks, sanitizes the body content, then reassembles
+    into a safe full HTML document that can be dropped into an iframe srcDoc.
+    """
+    import re
+
+    # Extract all <style> block contents
+    style_blocks = re.findall(r'<style[^>]*>(.*?)</style>', html, re.DOTALL | re.IGNORECASE)
+    # Remove scripts and on* attributes from style content (just in case)
+    combined_styles = "\n".join(style_blocks)
+    # Strip javascript: from styles
+    combined_styles = re.sub(r'javascript\s*:', '', combined_styles, flags=re.IGNORECASE)
+
+    # Remove <style>, <script>, <head>, <html>, <body> wrapper tags
+    # so bleach only sees the inner content
+    body_html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL | re.IGNORECASE)
+    body_html = re.sub(r'<script[^>]*>.*?</script>', '', body_html, flags=re.DOTALL | re.IGNORECASE)
+    body_html = re.sub(r'</?(?:html|head|body)[^>]*>', '', body_html, flags=re.IGNORECASE)
+
+    # Sanitize the body content with bleach
+    clean_body = bleach.clean(
+        body_html,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRS,
         protocols=ALLOWED_PROTOCOLS,
         strip=True,
     )
+
+    return clean_body, combined_styles
 
 
 @router.get("/digest")
@@ -140,9 +166,12 @@ async def get_email_html(email_id: str, user=Depends(get_current_user)):
         raise HTTPException(403, "Access denied.")
 
     raw_html = email.get("body_html") or ""
-    safe_html = sanitize_html(raw_html) if raw_html else ""
+    if raw_html:
+        clean_body, styles = sanitize_html(raw_html)
+    else:
+        clean_body, styles = "", ""
 
-    return {"email_id": email_id, "html": safe_html}
+    return {"email_id": email_id, "html": clean_body, "styles": styles}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
