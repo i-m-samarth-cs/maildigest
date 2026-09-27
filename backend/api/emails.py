@@ -67,7 +67,7 @@ async def get_digest(
     if category:
         emails = [
             e for e in emails
-            if (e.get("ai_analysis") or [{}])[0].get("category") == category
+            if _get_analysis(e).get("category") == category
         ]
 
     if account_id:
@@ -165,7 +165,7 @@ def _safe_email(e: dict, include_body: bool = False) -> dict:
         "has_attachments": e.get("has_attachments"),
         "is_read": e.get("is_read"),
         "is_starred": e.get("is_starred"),
-        "ai_analysis": (e.get("ai_analysis") or [None])[0],
+        "ai_analysis": _get_analysis(e) or None,
         "account": {
             "provider": (e.get("email_accounts") or {}).get("provider"),
             "email_address": (e.get("email_accounts") or {}).get("email_address"),
@@ -178,11 +178,20 @@ def _safe_email(e: dict, include_body: bool = False) -> dict:
     return result
 
 
+def _get_analysis(e: dict) -> dict:
+    """Normalize ai_analysis — Supabase may return a dict or a list."""
+    a = e.get("ai_analysis")
+    if not a:
+        return {}
+    if isinstance(a, list):
+        return a[0] if a else {}
+    return a  # already a dict
+
+
 def _compute_stats(emails: list) -> dict:
     counts: dict = {}
     for e in emails:
-        analysis = (e.get("ai_analysis") or [{}])
-        cat = (analysis[0] if analysis else {}).get("category", "other") or "other"
+        cat = _get_analysis(e).get("category", "other") or "other"
         counts[cat] = counts.get(cat, 0) + 1
     return counts
 
