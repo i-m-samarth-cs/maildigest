@@ -49,7 +49,7 @@ def _decode_state(state: str) -> dict:
 
 @router.get("/gmail/start")
 async def gmail_start(user=Depends(get_current_user)):
-    state = _make_state("gmail", user["id"])
+    state = _make_state("gmail", user.get("sub") or user.get("id", ""))
     return {"url": gmail_auth_url(state)}
 
 
@@ -69,7 +69,7 @@ async def gmail_callback(code: str = Query(...), state: str = Query(...)):
 
 @router.get("/outlook/start")
 async def outlook_start(user=Depends(get_current_user)):
-    state = _make_state("outlook", user["id"])
+    state = _make_state("outlook", user.get("sub") or user.get("id", ""))
     return {"url": outlook_auth_url(state)}
 
 
